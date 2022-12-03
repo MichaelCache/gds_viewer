@@ -25,7 +25,7 @@ cmake --build .
 
 see below
 
-![image](https://github.com/MichaelCache/gds_viewer/blob/main/1.PNG)
+![alt text](./1.PNG)
 
 use mouse wheel for zoom in an out
 
