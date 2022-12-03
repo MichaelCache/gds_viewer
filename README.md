@@ -25,7 +25,7 @@ cmake --build .
 
 see below
 
-![image](./1.PNG?raw=true)
+![image](./1.jpg?raw=true)
 
 use mouse wheel for zoom in an out
 
