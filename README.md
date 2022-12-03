@@ -1,6 +1,9 @@
 # gds_viewer
 
 
+## About
+
+This gui application use Qt for interface, [gdstk](https://github.com/heitzmann/gdstk) package for parse gdsii file, use opengl for render geometry.
 
 ## Required
 
@@ -18,3 +21,12 @@ cmake ..
 cmake --build .
 ```
 
+## How to use
+
+see below
+
+![image](./1.PNG)
+
+use mouse wheel for zoom in an out
+
+hold middle button for move
