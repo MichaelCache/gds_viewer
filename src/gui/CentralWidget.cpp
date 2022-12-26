@@ -20,6 +20,7 @@ void CentralWidget::createComponent() {
   m_layout_canvas = new LayoutCanvas(this);
   // m_circuit_scence = new CircuitScene(this);
   m_logger = new QTextEdit();
+  m_logger->setReadOnly(true);
 
   // get redirected debug output, write to textedit
   connect(&SingletonLogger::instance(), SIGNAL(log(const QString &)), m_logger,

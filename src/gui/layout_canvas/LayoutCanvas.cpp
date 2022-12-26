@@ -8,6 +8,7 @@
 #include <QWheelEvent>
 #include <QtGlobal>
 
+#include "../../event/CloseFileEvent.h"
 #include "../../event/OpenFileEvent.h"
 #include "../../event/OpenGdsEvent.h"
 
@@ -46,9 +47,9 @@ void LayoutCanvas::initializeGL() {
   m_shader->release();
   m_gl_func = this->context()->functions();
 
-  m_proj_matrix.perspective(50.f, 1.f, 0.1f, 500.0f);
+  m_proj_matrix.perspective(50.f, 1.f, 0.1f, 50000.0f);
   m_view_matrix.lookAt(QVector3D(0.f, 0.f, 20.f), QVector3D(0.f, 0.f, 0.f),
-                      QVector3D(0.f, 1.f, 0.f));
+                       QVector3D(0.f, 1.f, 0.f));
   m_model_matrix.scale(1.f, 1.f);
   m_view_matrix.setToIdentity();
 }
@@ -127,14 +128,18 @@ void LayoutCanvas::mouseReleaseEvent(QMouseEvent* event) {
 
 bool LayoutCanvas::event(QEvent* e) {
   if (e->type() == OpenFileEvent::type) {
+    clear();
     QString fn = dynamic_cast<OpenFileEvent*>(e)->data();
     gdstk::ErrorCode error_code;
     gdstk::Set<gdstk::Tag> tags = {0};
-    m_gds_lib =
+    auto lib =
         gdstk::read_gds(fn.toLocal8Bit().data(), 0, 1e-2, NULL, &error_code);
-    makeCurrent();
-    parseGds();
-    doneCurrent();
+    parseGds(lib);
+    lib.free_all();
+    e->accept();
+    return true;
+  } else if (e->type() == CloseFileEvent::type) {
+    clear();
     e->accept();
     return true;
   } else {
@@ -149,19 +154,21 @@ void LayoutCanvas::wheelEvent(QWheelEvent* event) {
   update();
 }
 
-void LayoutCanvas::parseGds() {
-  for (size_t i = 0; i < m_gds_lib.cell_array.count; i++) {
-    gdstk::Cell* cell = m_gds_lib.cell_array[i];
+void LayoutCanvas::parseGds(const gdstk::Library& lib) {
+  for (size_t i = 0; i < lib.cell_array.count; i++) {
+    gdstk::Cell* cell = lib.cell_array[i];
 
     gdstk::Array<gdstk::Polygon*> polygons = {0};
     cell->get_polygons(true, true, -1, false, 0, polygons);
     for (size_t j = 0; j < polygons.count; j++) {
       makePolygons(polygons[j]);
     }
+    polygons.clear();
   }
 }
 
 void LayoutCanvas::makePolygons(gdstk::Polygon* polygons) {
+  makeCurrent();
   auto vao = new QOpenGLVertexArrayObject();
   m_vaos.insert(vao, polygons->point_array.count);
 
@@ -181,4 +188,19 @@ void LayoutCanvas::makePolygons(gdstk::Polygon* polygons) {
 
   vbo->release();
   vao->release();
+  doneCurrent();
+}
+
+void LayoutCanvas::clear() {
+  makeCurrent();
+  for (auto&& vao : m_vaos.keys()) {
+    if (vao) vao->destroy();
+  }
+  for (auto&& vbo : m_vbos) {
+    if (vbo) vbo->destroy();
+  }
+  m_vaos.clear();
+  m_vbos.clear();
+  update();
+  doneCurrent();
 }

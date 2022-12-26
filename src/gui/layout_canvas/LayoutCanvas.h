@@ -29,14 +29,15 @@ class LayoutCanvas : public QOpenGLWidget {
   void mouseReleaseEvent(QMouseEvent *event) override;
 
  private:
-  void parseGds();
+  void parseGds(const gdstk::Library& lib);
   void makePolygons(gdstk::Polygon *);
+  void clear();
 
   QOpenGLFunctions *m_gl_func;
   QVector<QOpenGLBuffer *> m_vbos;
   QHash<QOpenGLVertexArrayObject *, quint64> m_vaos;
   QOpenGLShaderProgram *m_shader;
-  gdstk::Library m_gds_lib;
+
   QMatrix4x4 m_view_matrix;
   QMatrix4x4 m_model_matrix;
   QMatrix4x4 m_proj_matrix;
