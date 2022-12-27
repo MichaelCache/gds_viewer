@@ -43,7 +43,10 @@ void LayoutCanvas::initializeGL() {
     qDebug("Shaders link failed!");
   }
   m_shader->bind();
-  m_MVP_matrix_id = m_shader->uniformLocation("uMvpMatrix");
+  // m_MVP_matrix_id = m_shader->uniformLocation("uMvpMatrix");
+  m_modelToWorld = m_shader->uniformLocation("modelToWorld");
+  m_worldToCamera = m_shader->uniformLocation("worldToCamera");
+  m_cameraToView = m_shader->uniformLocation("cameraToView");
   m_shader->release();
   m_gl_func = this->context()->functions();
 
@@ -63,7 +66,9 @@ void LayoutCanvas::paintGL() {
 
   QMatrix4x4 projViewMatrix = m_proj_matrix * m_view_matrix;
   m_mvp_matrix = projViewMatrix * m_model_matrix;
-  m_shader->setUniformValue(m_MVP_matrix_id, m_mvp_matrix);
+  m_shader->setUniformValue(m_modelToWorld, m_model_matrix);
+  m_shader->setUniformValue(m_worldToCamera, m_view_matrix);
+  m_shader->setUniformValue(m_cameraToView, m_proj_matrix);
   // qDebug() << m_mvp_matrix;
 
   for (auto it = m_vaos.begin(); it != m_vaos.end(); it++) {

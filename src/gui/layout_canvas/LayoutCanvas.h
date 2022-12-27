@@ -47,5 +47,8 @@ class LayoutCanvas : public QOpenGLWidget {
   float m_prev_x_for_pan;
   float m_prev_y_for_pan;
   uint m_MVP_matrix_id;
+  uint m_modelToWorld;
+  uint m_worldToCamera;
+  uint m_cameraToView;
   bool m_panning{false};
 };
