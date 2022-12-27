@@ -47,11 +47,11 @@ void LayoutCanvas::initializeGL() {
   m_shader->release();
   m_gl_func = this->context()->functions();
 
-  m_proj_matrix.perspective(50.f, 1.f, 0.1f, 50000.0f);
-  m_view_matrix.lookAt(QVector3D(0.f, 0.f, 20.f), QVector3D(0.f, 0.f, 0.f),
+  // m_proj_matrix.perspective(50.f, 1.f, 0.1f, 50000.0f);
+  m_view_matrix.lookAt(QVector3D(0.f, 0.f, 0.f), QVector3D(0.f, 0.f, 0.f),
                        QVector3D(0.f, 1.f, 0.f));
   m_model_matrix.scale(1.f, 1.f);
-  m_view_matrix.setToIdentity();
+  // m_view_matrix.setToIdentity();
 }
 
 void LayoutCanvas::paintGL() {
@@ -75,8 +75,8 @@ void LayoutCanvas::paintGL() {
 }
 
 void LayoutCanvas::resizeGL(int w, int h) {
-  Q_UNUSED(w);
-  Q_UNUSED(h);
+  m_proj_matrix.setToIdentity();
+  m_proj_matrix.perspective(45.0f, w / float(h), 0.0f, 1000.0f);
 }
 
 void LayoutCanvas::mouseMoveEvent(QMouseEvent* event) {
