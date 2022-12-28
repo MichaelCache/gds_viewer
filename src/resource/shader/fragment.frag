@@ -1,5 +1,6 @@
 #version 330
 out vec4 fragColor;
+uniform vec3 color;
 // in vec4 gl_FragCoord;
 // vec4 strip() { if }
 
@@ -12,5 +13,5 @@ void main() {
   if (mod(pp.x + 1.0, 10.0) - 1. > 0.) {
     a = 0.0;
   }
-  fragColor = vec4(gl_FragCoord.xyz, a);
+  fragColor = vec4(color.xyz, a);
 }

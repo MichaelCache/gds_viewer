@@ -3,6 +3,7 @@
 #include <gdstk.h>
 
 #include <QHash>
+#include <QPair>
 #include <QOpenGLBuffer>
 #include <QOpenGLFunctions>
 #include <QOpenGLShaderProgram>
@@ -35,18 +36,17 @@ class LayoutCanvas : public QOpenGLWidget {
 
   QOpenGLFunctions *m_gl_func;
   QVector<QOpenGLBuffer *> m_vbos;
-  QHash<QOpenGLVertexArrayObject *, quint64> m_vaos;
+  QHash<QOpenGLVertexArrayObject *, QPair<quint64, QVector3D>> m_vaos;
   QOpenGLShaderProgram *m_shader;
 
   QMatrix4x4 m_view_matrix;
   QMatrix4x4 m_model_matrix;
   QMatrix4x4 m_proj_matrix;
-  QMatrix4x4 m_mvp_matrix;
   float m_pan_x{0};
   float m_pan_y{0};
   float m_prev_x_for_pan;
   float m_prev_y_for_pan;
-  uint m_MVP_matrix_id;
+  uint m_color;
   uint m_modelToWorld;
   uint m_worldToCamera;
   uint m_cameraToView;

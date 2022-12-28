@@ -12,6 +12,14 @@
 #include "../../event/OpenFileEvent.h"
 #include "../../event/OpenGdsEvent.h"
 
+namespace {
+const QVector3D DEFAULT_LAYER_COLOR[] = {
+    {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 1.0f},
+    {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 0.0f},
+    {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 1.0f}, {1.0f, 1.0f, 1.0f},
+};
+}  // namespace
+
 LayoutCanvas::LayoutCanvas(QWidget* parent) : QOpenGLWidget(parent) {
   EventDispacher::instance().registComp("LayoutCanvas", this);
 }
@@ -47,6 +55,8 @@ void LayoutCanvas::initializeGL() {
   m_modelToWorld = m_shader->uniformLocation("modelToWorld");
   m_worldToCamera = m_shader->uniformLocation("worldToCamera");
   m_cameraToView = m_shader->uniformLocation("cameraToView");
+  m_color = m_shader->uniformLocation("color");
+
   m_shader->release();
   m_gl_func = this->context()->functions();
 
@@ -64,8 +74,6 @@ void LayoutCanvas::paintGL() {
   m_gl_func->glClearColor(0.0f, 0.2f, 0.0f, 1.0f);
   m_shader->bind();
 
-  QMatrix4x4 projViewMatrix = m_proj_matrix * m_view_matrix;
-  m_mvp_matrix = projViewMatrix * m_model_matrix;
   m_shader->setUniformValue(m_modelToWorld, m_model_matrix);
   m_shader->setUniformValue(m_worldToCamera, m_view_matrix);
   m_shader->setUniformValue(m_cameraToView, m_proj_matrix);
@@ -73,7 +81,8 @@ void LayoutCanvas::paintGL() {
 
   for (auto it = m_vaos.begin(); it != m_vaos.end(); it++) {
     it.key()->bind();
-    m_gl_func->glDrawArrays(GL_LINE_LOOP, 0, it.value());
+    m_shader->setUniformValue(m_color, it.value().second);
+    m_gl_func->glDrawArrays(GL_LINE_LOOP, 0, it.value().first);
     it.key()->release();
   }
   m_shader->release();
@@ -175,7 +184,8 @@ void LayoutCanvas::parseGds(const gdstk::Library& lib) {
 void LayoutCanvas::makePolygons(gdstk::Polygon* polygons) {
   makeCurrent();
   auto vao = new QOpenGLVertexArrayObject();
-  m_vaos.insert(vao, polygons->point_array.count);
+  uint32_t layer = gdstk::get_layer(polygons->tag);
+  m_vaos.insert(vao, {polygons->point_array.count, DEFAULT_LAYER_COLOR[layer]});
 
   auto vbo = new QOpenGLBuffer(QOpenGLBuffer::Type::VertexBuffer);
   m_vbos.append(vbo);
