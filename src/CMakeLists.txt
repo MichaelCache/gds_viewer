@@ -27,18 +27,17 @@ file(GLOB RESOURCE_FILE resource/resource.qrc)
 
 file(GLOB_RECURSE PROJECT_SOURCES *.cpp *.h)
 
-add_executable(QEDA ${PROJECT_SOURCES} ${RESOURCE_FILE}) # ${TRANS_FILE} 
+add_executable(gds_viewer ${PROJECT_SOURCES} ${RESOURCE_FILE}) # ${TRANS_FILE} 
 
 # qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TRANS_FILE})
 
 # find_package(gdstk REQUIRED)
-target_include_directories(QEDA INTERFACE gdstk)
-# target_link_libraries(QEDA gdstk_LIBRARIES)
+target_include_directories(gds_viewer INTERFACE gdstk)
 
-target_link_libraries(QEDA PRIVATE Qt${QT_VERSION_MAJOR}::Widgets gdstk)
+target_link_libraries(gds_viewer PRIVATE Qt${QT_VERSION_MAJOR}::Widgets gdstk)
 
 set_target_properties(
-  QEDA
+  gds_viewer
   PROPERTIES MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com
              MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
              MACOSX_BUNDLE_SHORT_VERSION_STRING

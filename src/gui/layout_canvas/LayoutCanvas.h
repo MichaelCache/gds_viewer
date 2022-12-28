@@ -28,6 +28,8 @@ class LayoutCanvas : public QOpenGLWidget {
   void mouseMoveEvent(QMouseEvent *event) override;
   void mousePressEvent(QMouseEvent *event) override;
   void mouseReleaseEvent(QMouseEvent *event) override;
+  void keyPressEvent(QKeyEvent *event) override;
+  void keyReleaseEvent(QKeyEvent *event) override;
 
  private:
   void parseGds(const gdstk::Library& lib);
@@ -51,4 +53,5 @@ class LayoutCanvas : public QOpenGLWidget {
   uint m_worldToCamera;
   uint m_cameraToView;
   bool m_panning{false};
+  bool m_ctrl_pressed{false};
 };

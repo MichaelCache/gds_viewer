@@ -1,7 +1,7 @@
 #version 330
 out vec4 fragColor;
 uniform vec3 color;
-// in vec4 gl_FragCoord;
+in vec4 gl_FragCoord;
 // vec4 strip() { if }
 
 void main() {

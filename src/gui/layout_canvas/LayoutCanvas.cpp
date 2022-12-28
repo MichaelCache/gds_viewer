@@ -22,6 +22,7 @@ const QVector3D DEFAULT_LAYER_COLOR[] = {
 
 LayoutCanvas::LayoutCanvas(QWidget* parent) : QOpenGLWidget(parent) {
   EventDispacher::instance().registComp("LayoutCanvas", this);
+  setFocusPolicy(Qt::StrongFocus);
 }
 
 LayoutCanvas::~LayoutCanvas() {
@@ -77,7 +78,6 @@ void LayoutCanvas::paintGL() {
   m_shader->setUniformValue(m_modelToWorld, m_model_matrix);
   m_shader->setUniformValue(m_worldToCamera, m_view_matrix);
   m_shader->setUniformValue(m_cameraToView, m_proj_matrix);
-  // qDebug() << m_mvp_matrix;
 
   for (auto it = m_vaos.begin(); it != m_vaos.end(); it++) {
     it.key()->bind();
@@ -160,12 +160,36 @@ bool LayoutCanvas::event(QEvent* e) {
     return QOpenGLWidget::event(e);
   }
 }
+
 void LayoutCanvas::wheelEvent(QWheelEvent* event) {
-  float delta = event->angleDelta().y() / 100.f;
+  float scale = 0;
+  if (m_ctrl_pressed) {
+    scale = 1;
+  } else {
+    scale = 100;
+  }
+
+  float delta = event->angleDelta().y() / scale;
   float distance = m_view_matrix.column(3).z();
   distance += delta;
   m_view_matrix.setColumn(3, QVector4D(m_pan_x, -m_pan_y, distance, 1.f));
   update();
+}
+
+void LayoutCanvas::keyPressEvent(QKeyEvent* event) {
+  if (event->key() == Qt::Key_Control) {
+    m_ctrl_pressed = true;
+  } else {
+    return QOpenGLWidget::keyPressEvent(event);
+  }
+}
+
+void LayoutCanvas::keyReleaseEvent(QKeyEvent* event) {
+  if (event->key() == Qt::Key_Control) {
+    m_ctrl_pressed = false;
+  } else {
+    return QOpenGLWidget::keyPressEvent(event);
+  }
 }
 
 void LayoutCanvas::parseGds(const gdstk::Library& lib) {
