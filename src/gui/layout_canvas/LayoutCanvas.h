@@ -37,9 +37,12 @@ class LayoutCanvas : public QOpenGLWidget {
   void clear();
 
   QOpenGLFunctions *m_gl_func;
-  QVector<QOpenGLBuffer *> m_vbos;
-  QHash<QOpenGLVertexArrayObject *, QPair<quint64, QVector3D>> m_vaos;
-  QOpenGLShaderProgram *m_shader;
+  QVector<QOpenGLBuffer *> m_border_vbos;
+  QHash<QOpenGLVertexArrayObject *, QPair<quint64, QVector3D>> m_border_vaos;
+  QVector<QOpenGLBuffer *> m_fill_vbos;
+  QHash<QOpenGLVertexArrayObject *, QPair<quint64, QVector3D>> m_fill_vaos;
+  QOpenGLShaderProgram *m_border_shader;
+  QOpenGLShaderProgram *m_fill_shader;
 
   QMatrix4x4 m_view_matrix;
   QMatrix4x4 m_model_matrix;
