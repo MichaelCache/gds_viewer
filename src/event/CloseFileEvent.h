@@ -1,12 +1,10 @@
 #pragma once
 #include <QEvent>
 
-#include "EventDispacher.h"
-
 class CloseFileEvent : public QEvent {
  public:
-  CloseFileEvent() : QEvent(QEvent::Type(CloseFileEvent::type)) {}
-  ~CloseFileEvent() {}
+  CloseFileEvent();
+  ~CloseFileEvent() = default;
 
   static const QEvent::Type type;
 };

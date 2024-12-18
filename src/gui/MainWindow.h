@@ -5,7 +5,6 @@
 
 #include "CentralWidget.h"
 #include "MenuBar.h"
-#include "kernel/Kernel.h"
 
 class MainWindow : public QMainWindow {
   Q_OBJECT
@@ -17,6 +16,4 @@ class MainWindow : public QMainWindow {
  private:
   CentralWidget *m_main_widget;
   MenuBar *m_menubar;
-  QStatusBar *m_logger;
-  Kernel* m_kernel;
 };

@@ -3,16 +3,12 @@
 #include <QEvent>
 #include <QString>
 
-#include "EventDispacher.h"
-
-
 class OpenFileEvent : public QEvent {
  public:
-  OpenFileEvent(const QString& fn)
-      : QEvent(QEvent::Type(OpenFileEvent::type)), m_openfn(fn) {}
-  ~OpenFileEvent() {}
+  OpenFileEvent(const QString& fn);
+  ~OpenFileEvent() = default;
 
-  QString data() { return m_openfn; }
+  const QString& fileName();
 
   static const QEvent::Type type;
 

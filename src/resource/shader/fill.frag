@@ -1,5 +1,5 @@
 #version 330
-out vec4 gl_FragColor;
+// out vec4 gl_FragColor;
 uniform vec3 color;
 in vec4 gl_FragCoord;
 

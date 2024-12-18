@@ -14,12 +14,12 @@ endif()
 set(CMAKE_BUILD_TYPE Debug)
 
 find_package(
-  QT NAMES Qt5
-  COMPONENTS Widgets LinguistTools
+  QT NAMES Qt6
+  COMPONENTS Widgets OpenGLWidgets Core
   REQUIRED)
 find_package(
   Qt${QT_VERSION_MAJOR}
-  COMPONENTS Widgets LinguistTools
+  COMPONENTS Widgets OpenGLWidgets Core
   REQUIRED)
 
 # file(GLOB TRANS_FILE translation/qpanda_gui_zh_CN.ts)
@@ -27,14 +27,14 @@ file(GLOB RESOURCE_FILE resource/resource.qrc)
 
 file(GLOB_RECURSE PROJECT_SOURCES *.cpp *.h)
 
-add_executable(gds_viewer ${PROJECT_SOURCES} ${RESOURCE_FILE}) # ${TRANS_FILE} 
+add_executable(gds_viewer ${PROJECT_SOURCES} ${RESOURCE_FILE}) # ${TRANS_FILE}
 
-# qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TRANS_FILE})
+target_include_directories(gds_viewer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-# find_package(gdstk REQUIRED)
-target_include_directories(gds_viewer INTERFACE gdstk)
-
-target_link_libraries(gds_viewer PRIVATE Qt${QT_VERSION_MAJOR}::Widgets gdstk)
+target_link_libraries(
+  gds_viewer
+  PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::OpenGLWidgets
+          Qt${QT_VERSION_MAJOR}::Core gdstk)
 
 set_target_properties(
   gds_viewer

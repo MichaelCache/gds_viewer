@@ -8,7 +8,7 @@ class MenuBar : public QMenuBar {
 
  public:
   MenuBar(QWidget* parent = nullptr);
-  ~MenuBar();
+  ~MenuBar() = default;
 
   void setup();
 

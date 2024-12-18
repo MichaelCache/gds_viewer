@@ -1,17 +1,18 @@
 #include "LayoutCanvas.h"
 
-#include <gdstk.h>
-
 #include <QApplication>
+#include <QDebug>
 #include <QMouseEvent>
 #include <QOpenGLFunctions>
 #include <QWheelEvent>
 #include <QtGlobal>
 
-#include "../../event/CloseFileEvent.h"
-#include "../../event/OpenFileEvent.h"
-#include "../../event/OpenGdsEvent.h"
 #include "Triangulate.h"
+#include "event/CloseFileEvent.h"
+#include "event/EventDispacher.h"
+#include "event/OpenFileEvent.h"
+#include "event/SetCellNamesEvent.h"
+#include "gdstk.h"
 
 namespace {
 const QVector3D DEFAULT_LAYER_COLOR[] = {
@@ -22,7 +23,7 @@ const QVector3D DEFAULT_LAYER_COLOR[] = {
 }  // namespace
 
 LayoutCanvas::LayoutCanvas(QWidget* parent) : QOpenGLWidget(parent) {
-  EventDispacher::instance().registComp("LayoutCanvas", this);
+  EventDispacher::instance().registComp(EventComp::LayoutCanvas, this);
   setFocusPolicy(Qt::WheelFocus);
 }
 
@@ -57,9 +58,9 @@ void LayoutCanvas::initializeGL() {
   m_border_shader->addShaderFromSourceFile(QOpenGLShader::Fragment,
                                            ":/shader/border.frag");
   if (m_border_shader->link()) {
-    qDebug("Shaders link success.");
+    qDebug() << "Shaders link success.";
   } else {
-    qDebug("Shaders link failed!");
+    qDebug() << "Shaders link failed!";
   }
   m_border_shader->bind();
 
@@ -77,9 +78,9 @@ void LayoutCanvas::initializeGL() {
   m_fill_shader->addShaderFromSourceFile(QOpenGLShader::Fragment,
                                          ":/shader/fill.frag");
   if (m_fill_shader->link()) {
-    qDebug("Shaders link success.");
+    qDebug() << "Shaders link success.";
   } else {
-    qDebug("Shaders link failed!");
+    qDebug() << "Shaders link failed!";
   }
   m_fill_shader->bind();
   // m_MVP_matrix_id = m_shader->uniformLocation("uMvpMatrix");
@@ -95,7 +96,7 @@ void LayoutCanvas::initializeGL() {
   m_gl_func->glEnable(GL_BLEND);
   m_gl_func->glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-  m_view_matrix.lookAt(QVector3D(0.f, 0.f, 0.f), QVector3D(0.f, 0.f, 0.f),
+  m_view_matrix.lookAt(QVector3D(0.f, 0.f, -1.f), QVector3D(0.f, 0.f, 0.f),
                        QVector3D(0.f, 1.f, 0.f));
   m_model_matrix.scale(1.f, 1.f);
 }
@@ -188,7 +189,7 @@ void LayoutCanvas::mouseReleaseEvent(QMouseEvent* event) {
 bool LayoutCanvas::event(QEvent* e) {
   if (e->type() == OpenFileEvent::type) {
     clear();
-    QString fn = dynamic_cast<OpenFileEvent*>(e)->data();
+    QString fn = dynamic_cast<OpenFileEvent*>(e)->fileName();
     gdstk::ErrorCode error_code;
     gdstk::Set<gdstk::Tag> tags = {0};
     auto lib =
@@ -218,6 +219,7 @@ void LayoutCanvas::wheelEvent(QWheelEvent* event) {
   float distance = m_view_matrix.column(3).z();
   distance += delta;
   m_view_matrix.setColumn(3, QVector4D(m_pan_x, -m_pan_y, distance, 1.f));
+  qDebug() << distance;
   update();
 }
 
@@ -238,8 +240,29 @@ void LayoutCanvas::keyReleaseEvent(QKeyEvent* event) {
 }
 
 void LayoutCanvas::parseGds(const gdstk::Library& lib) {
-  for (size_t i = 0; i < lib.cell_array.count; i++) {
-    gdstk::Cell* cell = lib.cell_array[i];
+  gdstk::Array<gdstk::Cell*> cells = {};
+  gdstk::Array<gdstk::RawCell*> raw_cells = {};
+  lib.top_level(cells, raw_cells);
+  // for (size_t i = 0; i < lib.cell_array.count; i++) {
+  //   gdstk::Cell* cell = lib.cell_array[i];
+
+  //   gdstk::Array<gdstk::Polygon*> polygons = {0};
+  //   cell->get_polygons(true, true, -1, false, 0, polygons);
+  //   for (size_t j = 0; j < polygons.count; j++) {
+  //     makePolygons(polygons[j]);
+  //   }
+  //   polygons.clear();
+  // }
+  QVector<QString> cell_names;
+  for (size_t i = 0; i < cells.count; i++) {
+    cell_names.push_back(QString::fromStdString(cells[i]->name));
+  }
+  QApplication::postEvent(
+      EventDispacher::instance().getComp(EventComp::CellList),
+      new SetCellNamesEvent(cell_names));
+
+  if (cells.count) {
+    gdstk::Cell* cell = lib.cell_array[0];
 
     gdstk::Array<gdstk::Polygon*> polygons = {0};
     cell->get_polygons(true, true, -1, false, 0, polygons);
@@ -247,6 +270,24 @@ void LayoutCanvas::parseGds(const gdstk::Library& lib) {
       makePolygons(polygons[j]);
     }
     polygons.clear();
+    gdstk::Vec2 min = {};
+    gdstk::Vec2 max = {};
+    cell->bounding_box(min, max);
+    double box_width = max.x - min.x;
+    double box_height = max.y - min.y;
+    int width = this->width();
+    int height = this->height();
+    double width_ratio = width * 0.8 / box_width;
+    double height_ratio = height * 0.8 / box_height;
+
+    double center_x = min.x + box_width / 2;
+    double center_y = min.y + box_height / 2;
+
+    float distance = m_view_matrix.column(3).z();
+    distance = distance * std::min(width_ratio, height_ratio);
+    // m_view_matrix.lookAt(QVector3D(0.f, 0.f, -distance),
+    //                      QVector3D(center_x, center_y, 0.f),
+    //                      QVector3D(0.f, 1.f, 0.f));
   }
 }
 
