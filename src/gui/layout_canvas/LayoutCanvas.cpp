@@ -262,7 +262,7 @@ void LayoutCanvas::parseGds(const gdstk::Library& lib) {
       new SetCellNamesEvent(cell_names));
 
   if (cells.count) {
-    gdstk::Cell* cell = lib.cell_array[0];
+    gdstk::Cell* cell = cells[0];
 
     gdstk::Array<gdstk::Polygon*> polygons = {0};
     cell->get_polygons(true, true, -1, false, 0, polygons);
@@ -307,7 +307,9 @@ void LayoutCanvas::makePolygons(gdstk::Polygon* polygons) {
     auto fill_vao = new QOpenGLVertexArrayObject();
     uint32_t layer = gdstk::get_layer(polygons->tag);
 
-    m_fill_vaos.insert(fill_vao, {result.size(), DEFAULT_LAYER_COLOR[layer]});
+    m_fill_vaos.insert(
+        fill_vao, {result.size(),
+                   DEFAULT_LAYER_COLOR[layer % sizeof(DEFAULT_LAYER_COLOR)]});
 
     auto fill_vbo = new QOpenGLBuffer(QOpenGLBuffer::Type::VertexBuffer);
     m_fill_vbos.append(fill_vbo);
