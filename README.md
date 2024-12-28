@@ -7,7 +7,7 @@ This gui application use Qt for interface, [gdstk](https://github.com/heitzmann/
 
 ## Required
 
-Qt5.12 or later
+Qt6.6.2 or later(lower version may work too, you need to fix qt version in cmake file)
 Zlib
 
 ## How to build
@@ -29,4 +29,6 @@ see below
 
 use mouse wheel for zoom in an out
 
-hold middle button for move
+hold mouse left button for move
+
+there are some sample gds file in `./sample` folder, you can try them.
