@@ -1,7 +1,6 @@
 <!DOCTYPE RCC><RCC version="1.0">
 <qresource>
-    <file>shader/vertex.vert</file>
-    <file>shader/border.frag</file>
-    <file>shader/fill.frag</file>
+    <file>shader/vertex.glsl</file>
+    <file>shader/fragment.glsl</file>
 </qresource>
 </RCC>

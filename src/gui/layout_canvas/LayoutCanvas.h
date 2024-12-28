@@ -2,16 +2,25 @@
 
 #include <gdstk.h>
 
-#include <QHash>
-#include <QPair>
+#include <QMap>
 #include <QOpenGLBuffer>
 #include <QOpenGLFunctions>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLWidget>
+#include <QPair>
 #include <QVector>
 
-class LayoutCanvas : public QOpenGLWidget {
+struct CellPolygonVertex {
+ public:
+  void reset();
+  QOpenGLVertexArrayObject *vao{nullptr};
+  QOpenGLBuffer *vertex_buffer{nullptr};
+  QOpenGLBuffer *color_buffer{nullptr};
+  int vertex_count{0};
+};
+
+class LayoutCanvas : public QOpenGLWidget, protected QOpenGLFunctions {
   Q_OBJECT
 
  public:
@@ -32,17 +41,15 @@ class LayoutCanvas : public QOpenGLWidget {
   void keyReleaseEvent(QKeyEvent *event) override;
 
  private:
-  void parseGds(const gdstk::Library& lib);
-  void makePolygons(gdstk::Polygon *);
+  void parseGds(const gdstk::Library &lib);
+  void makeCellPolygons(gdstk::Cell *);
   void clear();
+  void test();
+  void initializeGrid();
 
-  QOpenGLFunctions *m_gl_func;
-  QVector<QOpenGLBuffer *> m_border_vbos;
-  QHash<QOpenGLVertexArrayObject *, QPair<quint64, QVector3D>> m_border_vaos;
-  QVector<QOpenGLBuffer *> m_fill_vbos;
-  QHash<QOpenGLVertexArrayObject *, QPair<quint64, QVector3D>> m_fill_vaos;
-  QOpenGLShaderProgram *m_border_shader;
-  QOpenGLShaderProgram *m_fill_shader;
+  QMap<QString, std::vector<CellPolygonVertex>> m_cellname_vertex;
+  QString m_current_cellname;
+  QOpenGLShaderProgram *m_shader;
 
   QMatrix4x4 m_view_matrix;
   QMatrix4x4 m_model_matrix;
@@ -51,10 +58,9 @@ class LayoutCanvas : public QOpenGLWidget {
   float m_pan_y{0};
   float m_prev_x_for_pan;
   float m_prev_y_for_pan;
-  uint m_color;
-  uint m_modelToWorld;
-  uint m_worldToCamera;
-  uint m_cameraToView;
-  bool m_panning{false};
+  bool m_mouse_bt_hold{false};
   bool m_ctrl_pressed{false};
+
+  QOpenGLBuffer vbo;
+  QOpenGLVertexArrayObject vao1;
 };

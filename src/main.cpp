@@ -3,8 +3,8 @@
 #include "gui/MainWindow.h"
 
 int main(int argc, char *argv[]) {
-  // enable high dpi
-  QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+  // qt6 enable high dpi by default
+  // QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 
   QApplication a(argc, argv);
   // load translation
