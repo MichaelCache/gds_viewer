@@ -12,7 +12,6 @@
 #include "event/EventDispacher.h"
 #include "event/OpenFileEvent.h"
 #include "event/SetCellNamesEvent.h"
-#include "gdstk.h"
 
 namespace {
 const QVector3D DEFAULT_LAYER_COLOR[] = {
@@ -88,9 +87,9 @@ void LayoutCanvas::initializeGL() {
     qDebug() << "Shaders link failed!";
   }
 
-  m_view_matrix.lookAt(QVector3D(0.f, 0.f, -1.f), QVector3D(0.f, 0.f, 0.f),
+  m_view_matrix.lookAt(QVector3D(0.f, 0.f, 0.f), QVector3D(0.f, 0.f, 0.f),
                        QVector3D(0.f, 1.f, 0.f));
-  m_model_matrix.scale(1.f, 1.f);
+  m_proj_matrix.setToIdentity();
   // TODO:draw background mesh
   // initializeGrid();
 }
@@ -101,9 +100,9 @@ void LayoutCanvas::paintGL() {
   // set background color
   glClearColor(0.0f, 0.2f, 0.0f, 1.0f);
   m_shader->bind();
-  m_shader->setUniformValue("modelToWorld", m_model_matrix);
-  m_shader->setUniformValue("worldToCamera", m_view_matrix);
-  m_shader->setUniformValue("cameraToView", m_proj_matrix);
+  // modelToWorld Matrix is identity
+  m_shader->setUniformValue("viewMatrix", m_view_matrix);
+  m_shader->setUniformValue("projMatrix", m_proj_matrix);
 
   if (m_cellname_vertex.count(m_current_cellname)) {
     const auto& cell_vertex = m_cellname_vertex.value(m_current_cellname);
@@ -120,30 +119,38 @@ void LayoutCanvas::paintGL() {
 }
 
 void LayoutCanvas::resizeGL(int w, int h) {
-  m_proj_matrix.setToIdentity();
-  m_proj_matrix.perspective(45.0f, w / float(h), 0.0f, 1000.0f);
+  float width = this->width();
+  float height = this->height();
+  float y_x_ratio = height / width;
+
+  m_proj_matrix = QMatrix4x4(
+      // line 1
+      y_x_ratio * m_scale, 0, 0, 0,
+      // line 2
+      0, m_scale, 0, 0,
+      // line 3
+      0, 0, 1, 0,
+      // line 4
+      0, 0, 0, 1);
   update();
 }
 
 void LayoutCanvas::initializeGrid() {
-  // 设置网格范围和密度
-  float gridSize = 1.0f;  // 网格的半径范围
-  int gridLines = 10;     // 每方向的线条数
-
+  float gridSize = 1.0f;
+  int gridLines = 10;
   QVector<float> gridVertices;
   for (int i = 0; i <= gridLines; ++i) {
     float pos = -gridSize + (2.0f * gridSize / gridLines) * i;
 
-    // 水平线
+    // vertical line
     gridVertices << -gridSize << pos << 0.0f;
     gridVertices << gridSize << pos << 0.0f;
 
-    // 垂直线
+    // horizontal line
     gridVertices << pos << -gridSize << 0.0f;
     gridVertices << pos << gridSize << 0.0f;
   }
 
-  // 创建 VBO 和 VAO
   vao1.create();
   vao1.bind();
 
@@ -180,26 +187,30 @@ void LayoutCanvas::parseGds(const gdstk::Library& lib) {
     auto& cell = cells[0];
     m_current_cellname = cells[0]->name;
 
-#if 0
     gdstk::Vec2 min = {};
     gdstk::Vec2 max = {};
     cell->bounding_box(min, max);
     double box_width = max.x - min.x;
     double box_height = max.y - min.y;
-    int width = this->width();
-    int height = this->height();
-    double width_ratio = width * 0.8 / box_width;
-    double height_ratio = height * 0.8 / box_height;
+    m_scale = std::min(2 / box_width, 2 / box_height);
+    float width = this->width();
+    float height = this->height();
+    float y_x_ratio = height / width;
+
+    m_proj_matrix = QMatrix4x4(
+        // line 1
+        y_x_ratio * m_scale, 0, 0, 0,
+        // line 2
+        0, m_scale, 0, 0,
+        // line 3
+        0, 0, 1, 0,
+        // line 4
+        0, 0, 0, 1);
 
     double center_x = min.x + box_width / 2;
     double center_y = min.y + box_height / 2;
-
-    float distance = m_view_matrix.column(3).z();
-    distance = distance * std::min(width_ratio, height_ratio);
-    // m_view_matrix.lookAt(QVector3D(0.f, 0.f, -distance),
-    //                      QVector3D(center_x, center_y, 0.f),
-    //                      QVector3D(0.f, 1.f, 0.f));
-#endif
+    m_view_matrix.translate(-center_x, -center_y);
+    qDebug() << m_view_matrix;
   }
   update();
 }
@@ -286,6 +297,10 @@ void LayoutCanvas::clear() {
     }
   }
   m_cellname_vertex.clear();
+  m_view_matrix.setToIdentity();
+  m_view_matrix.lookAt(QVector3D(0.f, 0.f, 0.f), QVector3D(0.f, 0.f, 0.f),
+                       QVector3D(0.f, 1.f, 0.f));
+  m_proj_matrix.setToIdentity();
   doneCurrent();
   update();
 }
@@ -299,16 +314,15 @@ void LayoutCanvas::mouseMoveEvent(QMouseEvent* event) {
   float x = event->pos().x();
   float y = event->pos().y();
 
-  float distance = m_view_matrix.column(3).z();
+  double move_x = x - m_prev_x;
+  double move_y = y - m_prev_y;
 
-  m_pan_x = (m_pan_x + (x - m_prev_x_for_pan) * qAbs(distance) / 500.f);
-  m_pan_y = (m_pan_y + (y - m_prev_y_for_pan) * qAbs(distance) / 500.f);
+  m_prev_x = x;
+  m_prev_y = y;
+  qDebug() << x << ":" << move_x;
 
-  m_prev_x_for_pan = x;
-  m_prev_y_for_pan = y;
-
-  m_view_matrix.setColumn(3, QVector4D(m_pan_x, -m_pan_y, distance, 1.f));
-
+  m_view_matrix.translate(move_x * m_scale, -move_y * m_scale);
+  qDebug() << m_view_matrix;
   update();
 }
 
@@ -319,8 +333,8 @@ void LayoutCanvas::mousePressEvent(QMouseEvent* event) {
         return;
       }
       m_mouse_bt_hold = true;
-      m_prev_x_for_pan = event->pos().x();
-      m_prev_y_for_pan = event->pos().y();
+      m_prev_x = event->pos().x();
+      m_prev_y = event->pos().y();
       break;
     }
     default: {
@@ -366,17 +380,21 @@ bool LayoutCanvas::event(QEvent* e) {
 }
 
 void LayoutCanvas::wheelEvent(QWheelEvent* event) {
-  float scale = 0;
+  float scale = 1;
+  float offset = 0;
   if (m_ctrl_pressed) {
-    scale = 1;
+    offset = 0.02;
   } else {
-    scale = 100;
+    offset = 0.1;
   }
 
-  float delta = event->angleDelta().y() / scale;
-  float distance = m_view_matrix.column(3).z();
-  distance += delta;
-  m_view_matrix.setColumn(3, QVector4D(m_pan_x, -m_pan_y, distance, 1.f));
+  if (event->angleDelta().y() > 0) {
+    scale -= offset;
+  } else {
+    scale += offset;
+  }
+  m_scale *= scale;
+  m_proj_matrix.scale(scale, scale, 1);
   update();
 }
 

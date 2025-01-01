@@ -5,13 +5,10 @@ layout(location = 1) in vec3 color;     // vertex color
 
 out vec3 fragColor;  // pass color to fragment shader
 
-uniform mat4 modelToWorld;
-uniform mat4 worldToCamera;
-uniform mat4 cameraToView;
+uniform mat4 viewMatrix;
+uniform mat4 projMatrix;
 
 void main() {
-  gl_Position =
-      cameraToView * worldToCamera * modelToWorld * vec4(position, 0.0f, 1.0f);
-  // gl_Position = vec4(position, 100.0f, 1.0f);
+  gl_Position = projMatrix * viewMatrix * vec4(position, 0.0f, 1.0f);
   fragColor = color;
 }

@@ -44,20 +44,17 @@ class LayoutCanvas : public QOpenGLWidget, protected QOpenGLFunctions {
   void parseGds(const gdstk::Library &lib);
   void makeCellPolygons(gdstk::Cell *);
   void clear();
-  void test();
   void initializeGrid();
 
   QMap<QString, std::vector<CellPolygonVertex>> m_cellname_vertex;
   QString m_current_cellname;
   QOpenGLShaderProgram *m_shader;
 
-  QMatrix4x4 m_view_matrix;
-  QMatrix4x4 m_model_matrix;
   QMatrix4x4 m_proj_matrix;
-  float m_pan_x{0};
-  float m_pan_y{0};
-  float m_prev_x_for_pan;
-  float m_prev_y_for_pan;
+  QMatrix4x4 m_view_matrix;
+  float m_prev_x;
+  float m_prev_y;
+  float m_scale{1.0};
   bool m_mouse_bt_hold{false};
   bool m_ctrl_pressed{false};
 
