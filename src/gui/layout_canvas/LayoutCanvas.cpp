@@ -210,7 +210,6 @@ void LayoutCanvas::parseGds(const gdstk::Library& lib) {
     double center_x = min.x + box_width / 2;
     double center_y = min.y + box_height / 2;
     m_view_matrix.translate(-center_x, -center_y);
-    qDebug() << m_view_matrix;
   }
   update();
 }
@@ -231,7 +230,6 @@ void LayoutCanvas::makeCellPolygons(gdstk::Cell* cell) {
       auto& point = gds_polygon->point_array[i];
       all_vertex.push_back(point.x);
       all_vertex.push_back(point.y);
-      // p.push_back(Vector2d(point.x, point.y));
     }
     // TODO:triangluate, divide polygon to triangles
     // Vector2dVector all_vertex;
@@ -319,9 +317,13 @@ void LayoutCanvas::mouseMoveEvent(QMouseEvent* event) {
 
   m_prev_x = x;
   m_prev_y = y;
-  qDebug() << x << ":" << move_x;
 
-  m_view_matrix.translate(move_x * m_scale, -move_y * m_scale);
+  float width = this->width();
+  float height = this->height();
+  float y_x_ratio = height / width;
+
+  m_view_matrix.translate(move_x * 2 / (width * y_x_ratio * m_scale),
+                          -move_y * 2 / (height * m_scale));
   qDebug() << m_view_matrix;
   update();
 }
