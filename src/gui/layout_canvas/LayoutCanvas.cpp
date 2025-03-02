@@ -4,11 +4,13 @@
 #include <QDebug>
 #include <QMouseEvent>
 #include <QOpenGLFunctions>
+#include <QTime>
 #include <QWheelEvent>
 #include <QtGlobal>
 
 #include "Triangulate.h"
 #include "event/CloseFileEvent.h"
+#include "event/CurrentFPSEvent.h"
 #include "event/EventDispacher.h"
 #include "event/OpenFileEvent.h"
 #include "event/SetCellNamesEvent.h"
@@ -47,6 +49,7 @@ void CellPolygonVertex::reset() {
 LayoutCanvas::LayoutCanvas(QWidget* parent) : QOpenGLWidget(parent) {
   EventDispacher::instance().registComp(EventComp::LayoutCanvas, this);
   setFocusPolicy(Qt::WheelFocus);
+  m_last_time = QTime::currentTime();
 }
 
 LayoutCanvas::~LayoutCanvas() {
@@ -116,6 +119,7 @@ void LayoutCanvas::paintGL() {
   }
 
   m_shader->release();
+  calculateFPS();
 }
 
 void LayoutCanvas::resizeGL(int w, int h) {
@@ -324,7 +328,6 @@ void LayoutCanvas::mouseMoveEvent(QMouseEvent* event) {
 
   m_view_matrix.translate(move_x * 2 / (width * y_x_ratio * m_scale),
                           -move_y * 2 / (height * m_scale));
-  qDebug() << m_view_matrix;
   update();
 }
 
@@ -413,5 +416,19 @@ void LayoutCanvas::keyReleaseEvent(QKeyEvent* event) {
     m_ctrl_pressed = false;
   } else {
     return QOpenGLWidget::keyPressEvent(event);
+  }
+}
+
+void LayoutCanvas::calculateFPS() {
+  m_frames++;
+  QTime currentTime = QTime::currentTime();
+  int deltaTime = m_last_time.msecsTo(currentTime);
+  if (deltaTime >= 1000) {
+    double fps = m_frames / (deltaTime / 1000.0f);
+    m_frames = 0;
+    m_last_time = currentTime;
+    QApplication::postEvent(
+        EventDispacher::instance().getComp(EventComp::MainStatusBar),
+        new CurrentFPSEvent(fps));
   }
 }

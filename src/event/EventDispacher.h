@@ -7,6 +7,7 @@
 enum class EventComp : int {
   LayoutCanvas,
   CellList,
+  MainStatusBar,
 };
 
 /**

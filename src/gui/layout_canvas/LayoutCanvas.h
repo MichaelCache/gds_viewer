@@ -10,6 +10,7 @@
 #include <QOpenGLWidget>
 #include <QPair>
 #include <QVector>
+#include <QTime>
 
 struct CellPolygonVertex {
  public:
@@ -45,6 +46,7 @@ class LayoutCanvas : public QOpenGLWidget, protected QOpenGLFunctions {
   void makeCellPolygons(gdstk::Cell *);
   void clear();
   void initializeGrid();
+  void calculateFPS();
 
   QMap<QString, std::vector<CellPolygonVertex>> m_cellname_vertex;
   QString m_current_cellname;
@@ -60,4 +62,8 @@ class LayoutCanvas : public QOpenGLWidget, protected QOpenGLFunctions {
 
   QOpenGLBuffer vbo;
   QOpenGLVertexArrayObject vao1;
+
+  // used for calculating FPS
+  int m_frames{0};
+  QTime m_last_time;
 };

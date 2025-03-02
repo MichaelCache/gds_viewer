@@ -13,6 +13,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
   // max main window
   showMaximized();
+
+  m_statusbar = new StatusBar();
+  setStatusBar(m_statusbar);
 }
 
 MainWindow::~MainWindow() {}

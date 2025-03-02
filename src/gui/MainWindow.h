@@ -5,6 +5,7 @@
 
 #include "CentralWidget.h"
 #include "MenuBar.h"
+#include "StatusBar.h"
 
 class MainWindow : public QMainWindow {
   Q_OBJECT
@@ -16,4 +17,5 @@ class MainWindow : public QMainWindow {
  private:
   CentralWidget *m_main_widget;
   MenuBar *m_menubar;
+  StatusBar *m_statusbar;
 };
