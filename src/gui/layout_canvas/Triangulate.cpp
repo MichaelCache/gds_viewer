@@ -1,4 +1,3 @@
-// 编写一个triangluate函数，接受一个多边形顶点数组，返回一组三角形的顶点数组。
 #include <algorithm>
 #include <array>
 #include <cmath>

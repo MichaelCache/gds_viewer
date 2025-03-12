@@ -9,17 +9,8 @@
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLWidget>
 #include <QPair>
-#include <QVector>
 #include <QTime>
-
-struct CellPolygonVertex {
- public:
-  void reset();
-  QOpenGLVertexArrayObject *vao{nullptr};
-  QOpenGLBuffer *vertex_buffer{nullptr};
-  QOpenGLBuffer *color_buffer{nullptr};
-  int vertex_count{0};
-};
+#include <QVector>
 
 class LayoutCanvas : public QOpenGLWidget, protected QOpenGLFunctions {
   Q_OBJECT
@@ -48,9 +39,19 @@ class LayoutCanvas : public QOpenGLWidget, protected QOpenGLFunctions {
   void initializeGrid();
   void calculateFPS();
 
-  QMap<QString, std::vector<CellPolygonVertex>> m_cellname_vertex;
+  struct CellPolygonVertex {
+   public:
+    CellPolygonVertex();
+    ~CellPolygonVertex() = default;
+    void clear();
+    QVector<QPair<QOpenGLVertexArrayObject *, size_t>> polygon_vaos;
+    QOpenGLBuffer *vertex_vbo;
+    QOpenGLBuffer *color_vbo;
+  };
+
+  QMap<QString, CellPolygonVertex> m_cellname_vertex;
   QString m_current_cellname;
-  QOpenGLShaderProgram *m_shader;
+  QOpenGLShaderProgram *m_shader_prog;
 
   QMatrix4x4 m_proj_matrix;
   QMatrix4x4 m_view_matrix;
@@ -60,10 +61,11 @@ class LayoutCanvas : public QOpenGLWidget, protected QOpenGLFunctions {
   bool m_mouse_bt_hold{false};
   bool m_ctrl_pressed{false};
 
-  QOpenGLBuffer vbo;
-  QOpenGLVertexArrayObject vao1;
+  // grid data
+  // QOpenGLBuffer vbo;
+  // QOpenGLVertexArrayObject vao1;
 
-  // used for calculating FPS
+  // calculate FPS
   int m_frames{0};
   QTime m_last_time;
 };

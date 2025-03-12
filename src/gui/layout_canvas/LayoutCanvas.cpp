@@ -16,34 +16,62 @@
 #include "event/SetCellNamesEvent.h"
 
 namespace {
-const QVector3D DEFAULT_LAYER_COLOR[] = {
-    {0.0f, 0.0f, 0.0f}, {0.5f, 0.0f, 0.0f}, {0.0f, 0.5f, 0.0f},
-    {0.0f, 0.0f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f},
-    {1.0f, 0.0f, 0.0f}, {0.0f, 0.5f, 0.5f}, {0.5f, 0.5f, 0.0f},
-    {0.5f, 0.0f, 0.5f}, {0.0f, 0.5f, 1.0f}, {0.0f, 1.0f, 0.5f},
-    {0.0f, 1.0f, 1.0f}, {0.5f, 0.0f, 1.0f}, {0.5f, 0.5f, 0.5f},
-    {0.5f, 0.5f, 1.0f}, {0.5f, 1.0f, 0.0f}, {0.5f, 1.0f, 0.5f},
-    {0.5f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.5f}, {1.0f, 0.0f, 1.0f},
-    {1.0f, 0.5f, 0.0f}, {1.0f, 0.5f, 0.5f}, {1.0f, 0.5f, 1.0f},
-    {1.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 0.5f}, {1.0f, 1.0f, 1.0f},
+// clang-format off
+const QVector<QVector3D> DEFAULT_LAYER_COLOR = {
+    QVector3D(0.0f, 0.0f, 0.0f), 
+    QVector3D(0.5f, 0.0f, 0.0f), 
+    QVector3D(0.0f, 0.5f, 0.0f),
+    QVector3D(0.0f, 0.0f, 0.5f), 
+    QVector3D(0.0f, 0.0f, 1.0f), 
+    QVector3D(0.0f, 1.0f, 0.0f),
+    QVector3D(1.0f, 0.0f, 0.0f), 
+    QVector3D(0.0f, 0.5f, 0.5f), 
+    QVector3D(0.5f, 0.5f, 0.0f),
+    QVector3D(0.5f, 0.0f, 0.5f), 
+    QVector3D(0.0f, 0.5f, 1.0f), 
+    QVector3D(0.0f, 1.0f, 0.5f),
+    QVector3D(0.0f, 1.0f, 1.0f), 
+    QVector3D(0.5f, 0.0f, 1.0f), 
+    QVector3D(0.5f, 0.5f, 0.5f),
+    QVector3D(0.5f, 0.5f, 1.0f), 
+    QVector3D(0.5f, 1.0f, 0.0f), 
+    QVector3D(0.5f, 1.0f, 0.5f),
+    QVector3D(0.5f, 1.0f, 1.0f), 
+    QVector3D(1.0f, 0.0f, 0.5f), 
+    QVector3D(1.0f, 0.0f, 1.0f),
+    QVector3D(1.0f, 0.5f, 0.0f), 
+    QVector3D(1.0f, 0.5f, 0.5f), 
+    QVector3D(1.0f, 0.5f, 1.0f),
+    QVector3D(1.0f, 1.0f, 0.0f), 
+    QVector3D(1.0f, 1.0f, 0.5f), 
+    QVector3D(1.0f, 1.0f, 1.0f),
 };
+// clang-format on
 
 }  // namespace
 
-void CellPolygonVertex::reset() {
-  if (vao) {
-    vao->destroy();
-    vao = nullptr;
+LayoutCanvas::CellPolygonVertex::CellPolygonVertex() {
+  vertex_vbo = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+  color_vbo = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+}
+
+void LayoutCanvas::CellPolygonVertex::clear() {
+  for (auto&& i : polygon_vaos) {
+    if (i.first->isCreated()) {
+      i.first->destroy();
+    }
+    delete i.first;
   }
-  if (vertex_buffer) {
-    vertex_buffer->destroy();
-    vertex_buffer = nullptr;
+  polygon_vaos.clear();
+  if (vertex_vbo->isCreated()) {
+    vertex_vbo->destroy();
   }
-  if (color_buffer) {
-    color_buffer->destroy();
-    color_buffer = nullptr;
+
+  delete vertex_vbo;
+  if (color_vbo->isCreated()) {
+    color_vbo->destroy();
   }
-  vertex_count = 0;
+  delete color_vbo;
 }
 
 LayoutCanvas::LayoutCanvas(QWidget* parent) : QOpenGLWidget(parent) {
@@ -55,18 +83,11 @@ LayoutCanvas::LayoutCanvas(QWidget* parent) : QOpenGLWidget(parent) {
 LayoutCanvas::~LayoutCanvas() {
   // Make sure the context is current and then explicitly
   // destroy all underlying OpenGL resources.
-  makeCurrent();
-  for (auto&& i : m_cellname_vertex) {
-    for (auto&& j : i) {
-      j.reset();
-    }
+  clear();
+  if (m_shader_prog) {
+    delete m_shader_prog;
+    m_shader_prog = nullptr;
   }
-  m_cellname_vertex.clear();
-  if (m_shader) {
-    delete m_shader;
-    m_shader = nullptr;
-  }
-  doneCurrent();
 }
 
 void LayoutCanvas::initializeGL() {
@@ -79,12 +100,12 @@ void LayoutCanvas::initializeGL() {
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   // bind shader
-  m_shader = new QOpenGLShaderProgram();
-  m_shader->addShaderFromSourceFile(QOpenGLShader::Vertex,
-                                    ":/shader/vertex.glsl");
-  m_shader->addShaderFromSourceFile(QOpenGLShader::Fragment,
-                                    ":/shader/fragment.glsl");
-  if (m_shader->link()) {
+  m_shader_prog = new QOpenGLShaderProgram();
+  m_shader_prog->addShaderFromSourceFile(QOpenGLShader::Vertex,
+                                         ":/shader/vertex.glsl");
+  m_shader_prog->addShaderFromSourceFile(QOpenGLShader::Fragment,
+                                         ":/shader/fragment.glsl");
+  if (m_shader_prog->link()) {
     qDebug() << "Shaders link success.";
   } else {
     qDebug() << "Shaders link failed!";
@@ -95,6 +116,13 @@ void LayoutCanvas::initializeGL() {
   m_proj_matrix.setToIdentity();
   // TODO:draw background mesh
   // initializeGrid();
+  // initialize color buffer
+  // makeCurrent();
+  // color_vbo->create();
+  // color_vbo->bind();
+  // color_vbo->allocate(DEFAULT_LAYER_COLOR, sizeof(DEFAULT_LAYER_COLOR));
+  // color_vbo->release();
+  // doneCurrent();
 }
 
 void LayoutCanvas::paintGL() {
@@ -102,23 +130,23 @@ void LayoutCanvas::paintGL() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   // set background color
   glClearColor(0.0f, 0.2f, 0.0f, 1.0f);
-  m_shader->bind();
+  m_shader_prog->bind();
   // modelToWorld Matrix is identity
-  m_shader->setUniformValue("viewMatrix", m_view_matrix);
-  m_shader->setUniformValue("projMatrix", m_proj_matrix);
+  m_shader_prog->setUniformValue("viewMatrix", m_view_matrix);
+  m_shader_prog->setUniformValue("projMatrix", m_proj_matrix);
 
   if (m_cellname_vertex.count(m_current_cellname)) {
-    const auto& cell_vertex = m_cellname_vertex.value(m_current_cellname);
-    for (auto&& i : cell_vertex) {
-      i.vao->bind();
+    auto& cell_vertex = m_cellname_vertex[m_current_cellname];
+    for (auto&& i : cell_vertex.polygon_vaos) {
+      i.first->bind();
       // draw polygon border
       glLineWidth(3.0f);
-      glDrawArrays(GL_LINE_LOOP, 0, i.vertex_count);
-      i.vao->release();
+      glDrawArrays(GL_LINE_LOOP, 0, i.second);
+      i.first->release();
     }
   }
 
-  m_shader->release();
+  m_shader_prog->release();
   calculateFPS();
 }
 
@@ -155,18 +183,18 @@ void LayoutCanvas::initializeGrid() {
     gridVertices << pos << gridSize << 0.0f;
   }
 
-  vao1.create();
-  vao1.bind();
+  // vao1.create();
+  // vao1.bind();
 
-  vbo.create();
-  vbo.bind();
-  vbo.allocate(gridVertices.data(), gridVertices.size() * sizeof(float));
+  // vbo.create();
+  // vbo.bind();
+  // vbo.allocate(gridVertices.data(), gridVertices.size() * sizeof(float));
 
-  m_shader->enableAttributeArray(0);
-  m_shader->setAttributeBuffer(0, GL_FLOAT, 0, 3, 3 * sizeof(float));
+  m_shader_prog->enableAttributeArray(0);
+  m_shader_prog->setAttributeBuffer(0, GL_FLOAT, 0, 3, 3 * sizeof(float));
 
-  vbo.release();
-  vao1.release();
+  // vbo.release();
+  // vao1.release();
 }
 
 void LayoutCanvas::parseGds(const gdstk::Library& lib) {
@@ -201,6 +229,7 @@ void LayoutCanvas::parseGds(const gdstk::Library& lib) {
     float height = this->height();
     float y_x_ratio = height / width;
 
+    // use orthogonal project matrix scale to fit the screen
     m_proj_matrix = QMatrix4x4(
         // line 1
         y_x_ratio * m_scale, 0, 0, 0,
@@ -213,6 +242,7 @@ void LayoutCanvas::parseGds(const gdstk::Library& lib) {
 
     double center_x = min.x + box_width / 2;
     double center_y = min.y + box_height / 2;
+    // use view matrix translate to cell center
     m_view_matrix.translate(-center_x, -center_y);
   }
   update();
@@ -226,65 +256,71 @@ void LayoutCanvas::makeCellPolygons(gdstk::Cell* cell) {
 
   auto& cell_vertex = m_cellname_vertex[cell->name];
 
+  QVector<GLfloat> all_vertex;
+  QVector<GLfloat> vertex_color;
   for (size_t i = 0; i < polygons.count; i++) {
     auto gds_polygon = polygons[i];
-    Vector2dVector p;
-    QVector<GLfloat> all_vertex;
+    uint32_t layer = gdstk::get_layer(gds_polygon->tag);
+    auto& color = DEFAULT_LAYER_COLOR.at(layer % DEFAULT_LAYER_COLOR.size());
+
     for (size_t i = 0; i < gds_polygon->point_array.count; i++) {
       auto& point = gds_polygon->point_array[i];
       all_vertex.push_back(point.x);
       all_vertex.push_back(point.y);
-    }
-    // TODO:triangluate, divide polygon to triangles
-    // Vector2dVector all_vertex;
-    // Triangulate::Process(p, all_vertex);
-
-    // different layer has different color
-    uint32_t layer = gdstk::get_layer(gds_polygon->tag);
-    auto color = DEFAULT_LAYER_COLOR[layer % sizeof(DEFAULT_LAYER_COLOR)];
-
-    // color of each vertex
-    QVector<GLfloat> vertex_color;
-    for (int i = 0; i < all_vertex.size(); i += 2) {
       vertex_color.push_back(color.x());
       vertex_color.push_back(color.y());
       vertex_color.push_back(color.z());
     }
+  }
+  // TODO:triangluate, divide polygon to triangles
 
-    cell_vertex.emplace_back();
-    auto& polygon_vertex = cell_vertex.back();
-    polygon_vertex.vao = new QOpenGLVertexArrayObject();
-    polygon_vertex.vao->create();
-    polygon_vertex.vao->bind();
+  // bind all vertex to one buffer
+  cell_vertex.vertex_vbo->create();
+  cell_vertex.vertex_vbo->bind();
+  cell_vertex.vertex_vbo->allocate(all_vertex.data(),
+                                   all_vertex.size() * sizeof(GLfloat));
+  cell_vertex.vertex_vbo->release();
 
-    polygon_vertex.vertex_buffer =
-        new QOpenGLBuffer(QOpenGLBuffer::Type::VertexBuffer);
-    polygon_vertex.vertex_buffer->create();
-    polygon_vertex.vertex_buffer->bind();
-    // insert vertex and color
-    polygon_vertex.vertex_buffer->allocate(all_vertex.data(),
-                                           all_vertex.size() * sizeof(GLfloat));
-    m_shader->bind();
-    m_shader->enableAttributeArray(0);
-    m_shader->setAttributeBuffer(0, GL_FLOAT, 0, 2);
-    m_shader->release();
+  cell_vertex.color_vbo->create();
+  cell_vertex.color_vbo->bind();
+  cell_vertex.color_vbo->allocate(vertex_color.data(),
+                                  vertex_color.size() * sizeof(GLfloat));
+  cell_vertex.color_vbo->release();
 
-    polygon_vertex.color_buffer =
-        new QOpenGLBuffer(QOpenGLBuffer::Type::VertexBuffer);
-    polygon_vertex.color_buffer->create();
-    polygon_vertex.color_buffer->bind();
-    polygon_vertex.color_buffer->allocate(
-        vertex_color.data(), vertex_color.size() * sizeof(GLfloat));
+  int point_offset = 0;
 
-    m_shader->bind();
-    m_shader->enableAttributeArray(1);
-    m_shader->setAttributeBuffer(1, GL_FLOAT, 0, 3);
-    m_shader->release();
+  for (size_t i = 0; i < polygons.count; i++) {
+    auto gds_polygon = polygons[i];
 
-    polygon_vertex.vertex_count = all_vertex.size() / 2;
-    polygon_vertex.vao->release();
-    polygon_vertex.vertex_buffer->release();
-    polygon_vertex.color_buffer->release();
+    auto vertex_vao = new QOpenGLVertexArrayObject();
+    vertex_vao->create();
+    vertex_vao->bind();
+    // bind vertex
+    cell_vertex.vertex_vbo->bind();
+
+    m_shader_prog->bind();
+    m_shader_prog->enableAttributeArray(0);
+    m_shader_prog->setAttributeBuffer(0, GL_FLOAT,
+                                      point_offset * 2 * sizeof(float), 2);
+    m_shader_prog->release();
+
+    cell_vertex.vertex_vbo->release();
+    vertex_vao->release();
+    // bind vertex color
+    vertex_vao->bind();
+    cell_vertex.color_vbo->bind();
+
+    m_shader_prog->bind();
+    m_shader_prog->enableAttributeArray(1);
+    m_shader_prog->setAttributeBuffer(1, GL_FLOAT,
+                                      point_offset * 3 * sizeof(float), 3);
+    m_shader_prog->release();
+
+    cell_vertex.color_vbo->release();
+    vertex_vao->release();
+    cell_vertex.polygon_vaos.emplace_back(vertex_vao,
+                                          gds_polygon->point_array.count);
+    point_offset += gds_polygon->point_array.count;
   }
 
   polygons.clear();
@@ -293,11 +329,11 @@ void LayoutCanvas::makeCellPolygons(gdstk::Cell* cell) {
 
 void LayoutCanvas::clear() {
   makeCurrent();
+
   for (auto&& i : m_cellname_vertex) {
-    for (auto&& j : i) {
-      j.reset();
-    }
+    i.clear();
   }
+
   m_cellname_vertex.clear();
   m_view_matrix.setToIdentity();
   m_view_matrix.lookAt(QVector3D(0.f, 0.f, 0.f), QVector3D(0.f, 0.f, 0.f),
